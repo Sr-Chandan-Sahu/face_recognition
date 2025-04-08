@@ -1,11 +1,14 @@
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Modal,
   StatusBar,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
+  SafeAreaView,
 } from 'react-native';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
@@ -17,7 +20,6 @@ import {
 import {scanFaces} from 'vision-camera-face-detector';
 import {runOnJS} from 'react-native-reanimated';
 import {ImageObj} from '../types';
-import {myToast} from '../utils/myToast';
 
 interface Props {
   visible: boolean;
@@ -26,20 +28,21 @@ interface Props {
 }
 
 const invisibleColor = 'rgba(255, 255, 255, 0)';
-const dangerColor = 'rgba(237, 35, 28, 1)';
-const successColor = 'rgba(85, 198, 170, 1)';
+const dangerColor = 'rgba(237, 35, 28, 0.8)';
+const successColor = 'rgba(85, 198, 170, 0.8)';
 
 const LoadingView = () => {
   return (
     <View style={styles.waitingContainer}>
       <ActivityIndicator size="large" color="white" />
-      <Text style={{color: 'white', fontSize: 16}}>Waiting Camera</Text>
+      <Text style={styles.waitingText}>Initializing Camera</Text>
     </View>
   );
 };
 
 const ModalCameraAuto = ({visible, onClose, onFinish}: Props) => {
   const [isFace, setIsFace] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
 
   const camera = useRef<Camera>(null);
   const devices = useCameraDevices();
@@ -47,7 +50,7 @@ const ModalCameraAuto = ({visible, onClose, onFinish}: Props) => {
 
   const onError = useCallback((error: CameraRuntimeError) => {
     console.log('Error Camera: ', error);
-    myToast(error.message);
+    Alert.alert('Camera Error', error.message);
   }, []);
 
   const frameProcessor = useFrameProcessor(frame => {
@@ -63,6 +66,9 @@ const ModalCameraAuto = ({visible, onClose, onFinish}: Props) => {
 
   useEffect(() => {
     const takePicture = async () => {
+      if (isCapturing) return;
+      
+      setIsCapturing(true);
       try {
         const photo = await camera.current?.takeSnapshot({
           flash: 'off',
@@ -84,11 +90,14 @@ const ModalCameraAuto = ({visible, onClose, onFinish}: Props) => {
           onClose();
         }
       } catch (err: any) {
-        myToast(String(err));
+        Alert.alert('Error', String(err));
         console.log('error capture: ', String(err));
+      } finally {
+        setIsCapturing(false);
       }
     };
-    if (isFace && visible) {
+    
+    if (isFace && visible && !isCapturing) {
       setTimeout(() => {
         takePicture();
       }, 500);
@@ -96,7 +105,7 @@ const ModalCameraAuto = ({visible, onClose, onFinish}: Props) => {
       setIsFace(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFace, visible]);
+  }, [isFace, visible, isCapturing]);
 
   return (
     <Modal
@@ -105,41 +114,74 @@ const ModalCameraAuto = ({visible, onClose, onFinish}: Props) => {
       visible={visible}
       onRequestClose={onClose}
       statusBarTranslucent>
-      {device == null ? (
-        <LoadingView />
-      ) : (
-        <View style={{flex: 1, backgroundColor: 'black'}}>
-          <StatusBar
-            barStyle="light-content"
-            translucent
-            backgroundColor={invisibleColor}
-          />
-          <View style={styles.cameraContainer}>
-            <Camera
-              ref={camera}
-              style={{aspectRatio: 3 / 4}}
-              device={device}
-              isActive={visible}
-              photo={true}
-              onError={onError}
-              frameProcessor={frameProcessor}
-              frameProcessorFps={3}
+      <SafeAreaView style={styles.modalContainer}>
+        {device == null ? (
+          <LoadingView />
+        ) : (
+          <View style={styles.cameraWrapper}>
+            <StatusBar
+              barStyle="light-content"
+              translucent
+              backgroundColor={invisibleColor}
             />
-          </View>
-          <View style={styles.container}>
-            <View style={styles.labelContainer}>
-              <Text
-                style={{
-                  backgroundColor: isFace ? successColor : dangerColor,
-                  fontSize: 24,
-                }}>
-                {isFace ? 'Camera Siap 🥳' : 'Wajah tidak terlihat 😴'}
+            
+            <View style={styles.headerContainer}>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={onClose}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+              <Text style={styles.headerText}>Face Recognition</Text>
+              <View style={styles.placeholder} />
+            </View>
+            
+            <View style={styles.cameraContainer}>
+              <Camera
+                ref={camera}
+                style={styles.camera}
+                device={device}
+                isActive={visible}
+                photo={true}
+                onError={onError}
+                frameProcessor={frameProcessor}
+                frameProcessorFps={3}
+              />
+              
+              <View style={styles.overlayContainer}>
+                <View style={styles.faceIndicatorContainer}>
+                  <View 
+                    style={[
+                      styles.faceIndicator,
+                      { backgroundColor: isFace ? successColor : dangerColor }
+                    ]}
+                  >
+                    <Text style={styles.faceIndicatorText}>
+                      {isFace ? 'Face Detected' : 'No Face Detected'}
+                    </Text>
+                  </View>
+                </View>
+                
+                {isCapturing && (
+                  <View style={styles.capturingContainer}>
+                    <ActivityIndicator size="large" color="white" />
+                    <Text style={styles.capturingText}>Capturing...</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+            
+            <View style={styles.footerContainer}>
+              <Text style={styles.instructionText}>
+                {isFace 
+                  ? 'Position your face in the center' 
+                  : 'Please position your face in the camera view'}
               </Text>
             </View>
-            <View style={styles.actionSection} />
           </View>
-        </View>
-      )}
+        )}
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -150,9 +192,13 @@ const ScreenHeight = Dimensions.get('window').height;
 const ScreenWidth = Dimensions.get('window').width;
 
 const styles = StyleSheet.create({
-  container: {
+  modalContainer: {
     flex: 1,
-    justifyContent: 'space-between',
+    backgroundColor: 'black',
+  },
+  cameraWrapper: {
+    flex: 1,
+    backgroundColor: 'black',
   },
   waitingContainer: {
     flex: 1,
@@ -160,40 +206,94 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cameraContainer: {
-    position: 'absolute',
-    width: ScreenWidth,
-    height: ScreenHeight,
-    paddingTop: ScreenHeight * 0.07,
+  waitingText: {
+    color: 'white', 
+    fontSize: 18,
+    marginTop: 15,
+    fontWeight: '500',
   },
-  labelContainer: {
-    height: 100,
-    alignItems: 'center',
-    marginTop: StatusBar.currentHeight,
-    justifyContent: 'center',
-  },
-  actionSection: {
-    backgroundColor: 'rgba(21, 21, 21, 0.25)',
-    height: 200,
+  headerContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 15,
+    zIndex: 10,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  actionButton: {
-    borderWidth: 1,
-    borderColor: 'white',
-    borderRadius: 14,
-    padding: 8,
-  },
-  confirmButton: {
+  closeButtonText: {
     color: 'white',
+    fontSize: 20,
     fontWeight: 'bold',
-    fontSize: 22,
   },
-  capture: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'white',
+  headerText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  placeholder: {
+    width: 40,
+  },
+  cameraContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  camera: {
+    flex: 1,
+    aspectRatio: 3 / 4,
+  },
+  overlayContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  faceIndicatorContainer: {
+    position: 'absolute',
+    top: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
+  faceIndicator: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  faceIndicatorText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  capturingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  capturingText: {
+    color: 'white',
+    fontSize: 18,
+    marginTop: 15,
+    fontWeight: '500',
+  },
+  footerContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  instructionText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

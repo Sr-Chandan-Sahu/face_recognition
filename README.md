@@ -1,79 +1,209 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# React Native Face Recognition App
 
-# Getting Started
+A React Native application that performs face recognition using the device's camera. The app allows users to register their face and then use it for recognition.
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+## Features
 
-## Step 1: Start the Metro Server
+- Face registration and recognition
+- Real-time face detection
+- Local storage using AsyncStorage
+- Modern and responsive UI
+- Camera permission handling
+- Error handling and user feedback
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+## Workflow
 
-To start Metro, run the following command from the _root_ of your React Native project:
-
-```bash
-# using npm
-npm start
-
-# OR using Yarn
-yarn start
+### 1. Initial App Launch
+```mermaid
+graph TD
+    A[App Launch] --> B[Check Camera Permission]
+    B --> C{Has Permission?}
+    C -->|Yes| D[Show Home Screen]
+    C -->|No| E[Request Permission]
+    E -->|Granted| D
+    E -->|Denied| F[Show Error Alert]
 ```
 
-## Step 2: Start your Application
-
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
-
-### For Android
-
-```bash
-# using npm
-npm run android
-
-# OR using Yarn
-yarn android
+### 2. Registration Flow
+```mermaid
+graph TD
+    A[Home Screen] --> B[User Not Registered]
+    B --> C[Tap Register Now]
+    C --> D[Open Camera Modal]
+    D --> E[Face Detection]
+    E -->|Face Detected| F[Auto Capture]
+    F --> G[Save Face Description]
+    G --> H[Update UI to Registered State]
 ```
 
-### For iOS
-
-```bash
-# using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+### 3. Recognition Flow
+```mermaid
+graph TD
+    A[Registered User] --> B[Tap Profile Image]
+    B --> C[Open Camera Modal]
+    C --> D[Face Detection]
+    D -->|Face Detected| E[Auto Capture]
+    E --> F[Compare with Stored Face]
+    F -->|Match| G[Show Similarity %]
+    F -->|No Match| H[Show Not Match]
 ```
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+## Detailed Workflow Explanation
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+### 1. App Initialization
+- App checks for camera permissions using `useGetPermission` hook
+- If permission not granted, requests it from the user
+- Shows appropriate alerts for permission status
 
-## Step 3: Modifying your App
+### 2. Registration Process
+- When user is not registered:
+  - Shows "Register Now" button
+  - On tap, opens camera modal
+  - Camera continuously scans for faces
+  - When face detected:
+    - Shows green indicator
+    - Automatically captures image
+    - Converts image to base64
+    - Saves face description to AsyncStorage
+    - Updates UI to show registered state
 
-Now that you have successfully run the app, let's modify it.
+### 3. Face Recognition Process
+- When user is registered:
+  - Shows profile image with "Tap to scan" overlay
+  - On tap, opens camera modal
+  - Camera scans for faces
+  - When face detected:
+    - Captures new image
+    - Retrieves stored face description from AsyncStorage
+    - Compares new face with stored face
+    - Shows result:
+      - If match: Displays similarity percentage
+      - If no match: Shows "Not Match"
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
+### 4. Additional Features
+- Clear Results:
+  - Clears current recognition result
+  - Keeps registration intact
+- Logout:
+  - Clears registration
+  - Returns to unregistered state
+- Clear Storage:
+  - Clears all stored face descriptions
+  - Returns to initial state
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+### 5. Error Handling
+- Camera errors show alerts
+- Face detection failures show appropriate messages
+- Storage operations have error handling
+- Loading states shown during operations
 
-## Congratulations! :tada:
+### 6. UI Feedback
+- Loading indicators during operations
+- Color-coded results (green for match, red for no match)
+- Clear status messages
+- Visual feedback for face detection
 
-You've successfully run and modified your React Native App. :partying_face:
+## Key Components
 
-### Now what?
+### 1. Home Screen (`Home.tsx`)
+- Main interface
+- Handles registration and recognition states
+- Manages UI updates and user interactions
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
+### 2. Camera Modal (`ModalCameraAuto.tsx`)
+- Handles camera operations
+- Manages face detection
+- Provides visual feedback
+- Handles image capture
 
-# Troubleshooting
+### 3. Storage Utility (`storage.ts`)
+- Manages face description storage
+- Handles face comparison
+- Provides AsyncStorage operations
 
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+### 4. Permission Hook (`useGetPermission.ts`)
+- Manages camera permissions
+- Handles permission requests
+- Provides permission status
 
-# Learn More
+## Technical Details
 
-To learn more about React Native, take a look at the following resources:
+### Dependencies
+- react-native-vision-camera
+- vision-camera-face-detector
+- @react-native-async-storage/async-storage
+- react-native-reanimated
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+### Storage Implementation
+- Uses AsyncStorage for local data persistence
+- Stores face descriptions as base64 strings
+- Implements simple face comparison logic
+
+### Camera Implementation
+- Uses front camera for face detection
+- Implements frame processor for real-time face detection
+- Auto-captures when face is detected
+- Provides visual feedback during capture
+
+## UI/UX Features
+
+### Modern Design
+- Clean and intuitive interface
+- Responsive layout
+- Proper spacing and alignment
+- Visual feedback for all actions
+
+### User Feedback
+- Loading indicators
+- Status messages
+- Error alerts
+- Success confirmations
+
+### Accessibility
+- Clear button labels
+- High contrast colors
+- Proper touch targets
+- Status indicators
+
+## Error Handling
+
+### Camera Errors
+- Permission denials
+- Camera initialization failures
+- Capture errors
+
+### Storage Errors
+- Save failures
+- Read failures
+- Comparison errors
+
+### UI Error States
+- Loading states
+- Error messages
+- Retry options
+
+## Future Improvements
+
+1. **Enhanced Face Recognition**
+   - Implement more sophisticated face comparison algorithms
+   - Add multiple face registration support
+   - Improve accuracy of face detection
+
+2. **Security Enhancements**
+   - Add encryption for stored face data
+   - Implement secure storage options
+   - Add authentication layers
+
+3. **UI Improvements**
+   - Add dark mode support
+   - Implement custom animations
+   - Add more user feedback options
+
+4. **Performance Optimization**
+   - Optimize image processing
+   - Improve camera performance
+   - Enhance storage operations
+
+## Contributing
+
+Feel free to submit issues and enhancement requests!

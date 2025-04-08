@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
+import {Alert} from 'react-native';
 import {Camera} from 'react-native-vision-camera';
-import {myToast} from '../utils/myToast';
 
 interface Config {
   onFinish?: () => Promise<void>;
@@ -25,7 +25,7 @@ const useGetPermission = ({onFinish}: Config) => {
 
         const cameraRequest = await Camera.requestCameraPermission();
         if (cameraRequest === 'authorized') {
-          myToast(`Permission Camera ${cameraRequest}`);
+          Alert.alert('Permission Granted', `Camera permission ${cameraRequest}`);
           return;
         }
       });
