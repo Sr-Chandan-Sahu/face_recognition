@@ -2,6 +2,22 @@
 
 A React Native application that performs face recognition using the device's camera. The app allows users to register their face and then use it for recognition.
 
+## Project Structure
+
+The project has a minimalist structure with two main files:
+
+1. `App.tsx` - Contains all the application logic including:
+   - Main application component
+   - Camera modal functionality
+   - Permission handling
+   - UI components and styling
+   - Face detection and recognition logic
+
+2. `src/utils/storage.ts` - Handles all storage operations:
+   - Face description storage
+   - Face comparison logic
+   - AsyncStorage operations
+
 ## Features
 
 - Face registration and recognition
@@ -133,6 +149,12 @@ graph TD
 - vision-camera-face-detector
 - @react-native-async-storage/async-storage
 - react-native-reanimated
+
+### Code Organization
+- All UI components and business logic are consolidated in `App.tsx`
+- Storage operations are separated in `storage.ts` for better maintainability
+- Clean and modular code structure within single file
+- Clear separation of concerns between UI/logic and storage operations
 
 ### Storage Implementation
 - Uses AsyncStorage for local data persistence
